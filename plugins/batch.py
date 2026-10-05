@@ -86,83 +86,221 @@ async def upd_dlg(c):
 
 # fixed the old group of 2021-2022 extraction 🌝 (buy krne ka fayda nhi ab old group) ✅ 
 async def get_msg(c, u, i, d, lt):
+    """
+    Fetch one source message.
+
+    Private sources are read using the logged-in user client.
+    """
+
     try:
+        # =========================
+        # PUBLIC SOURCE
+        # =========================
         if lt == 'public':
             try:
                 if str(i).lower().endswith('bot'):
                     emp[i] = False
+
                     xm = await u.get_messages(i, d)
                     emp[i] = getattr(xm, "empty", False)
+
                     if not emp[i]:
                         emp[i] = True
-                        print(f"Bot chat found successfully...")
+                        print("Bot chat found successfully...")
                         return xm
-                    
+
+                # Prevent KeyError on first public message
+                if i not in emp:
+                    emp[i] = True
+
                 if emp[i]:
                     xm = await c.get_messages(i, d)
-                    print(f"fetched by {c.me.username}")
+
+                    print(f"Fetched public message from {i}")
+
                     emp[i] = getattr(xm, "empty", False)
+
                     if emp[i]:
-                        print(f"Not fetched by {c.me.username}")
-                        try: await u.join_chat(i)
-                        except: pass
-                        xm = await u.get_messages((await u.get_chat(f"@{i}")).id, d)
-                    
-                    return xm                   
+                        try:
+                            await u.join_chat(i)
+                        except Exception:
+                            pass
+
+                        chat = await u.get_chat(f"@{i}")
+                        xm = await u.get_messages(chat.id, d)
+
+                    return xm
+
             except Exception as e:
-                print(f'Error fetching public message: {e}')
+                print(
+                    f"PUBLIC FETCH ERROR: "
+                    f"{type(e).__name__}: {e}"
+                )
                 return None
-        else:
-            if u:
-                try:
-                    async for _ in u.get_dialogs(limit=50): pass
-                    
-                    # Try with -100 prefix first
-                    if str(i).startswith('-100'):
-                        chat_id_100 = i
-                        # For - prefix, remove -100 and add just -
-                        base_id = str(i)[4:]  # Remove -100
-                        chat_id_dash = f"-{base_id}"
-                    elif i.isdigit():
-                        chat_id_100 = f"-100{i}"
-                        chat_id_dash = f"-{i}"
-                    else:
-                        chat_id_100 = i
-                        chat_id_dash = i
-                    
-                    # Try -100 format first
-                    try:
-                        result = await u.get_messages(chat_id_100, d)
-                        if result and not getattr(result, "empty", False):
-                            return result
-                    except Exception:
-                        pass
-                    
-                    # Try - format second
-                    try:
-                        result = await u.get_messages(chat_id_dash, d)
-                        if result and not getattr(result, "empty", False):
-                            return result
-                    except Exception:
-                        pass
-                    
-                    # Final fallback - refresh dialogs and try original
-                    try:
-                        async for _ in u.get_dialogs(limit=200): pass
-                        result = await u.get_messages(i, d)
-                        if result and not getattr(result, "empty", False):
-                            return result
-                    except Exception:
-                        pass
-                    
-                    return None
-                            
-                except Exception as e:
-                    print(f'Private channel error: {e}')
-                    return None
+
+        # =========================
+        # PRIVATE SOURCE
+        # =========================
+
+        if not u:
+            print(
+                "PRIVATE FETCH ERROR: "
+                "User client/session is not available."
+            )
             return None
+
+        # E() normally returns -100XXXXXXXXXX
+        source_id = str(i).strip()
+
+        if source_id.lstrip("-").isdigit():
+            source_id = int(source_id)
+
+        print(
+            f"Trying private message: "
+            f"chat={source_id}, message={d}"
+        )
+
+        last_error = None
+
+        # ---------------------------------
+        # TRY 1: DIRECT MESSAGE FETCH
+        # ---------------------------------
+
+        try:
+            result = await u.get_messages(
+                source_id,
+                d
+            )
+
+            if result and not getattr(result, "empty", False):
+
+                print(
+                    f"PRIVATE FETCH SUCCESS: "
+                    f"chat={source_id}, message={d}"
+                )
+
+                return result
+
+            print(
+                f"Private message is empty: "
+                f"chat={source_id}, message={d}"
+            )
+
+        except Exception as e:
+
+            last_error = e
+
+            print(
+                f"PRIVATE DIRECT FETCH ERROR: "
+                f"{type(e).__name__}: {e}"
+            )
+
+        # ---------------------------------
+        # TRY 2: RESOLVE CHAT FIRST
+        # ---------------------------------
+
+        try:
+
+            chat = await u.get_chat(source_id)
+
+            print(
+                f"Private chat resolved: "
+                f"id={chat.id}, title={getattr(chat, 'title', None)}"
+            )
+
+            result = await u.get_messages(
+                chat.id,
+                d
+            )
+
+            if result and not getattr(result, "empty", False):
+
+                print(
+                    f"PRIVATE FETCH SUCCESS "
+                    f"AFTER CHAT RESOLVE: "
+                    f"chat={chat.id}, message={d}"
+                )
+
+                return result
+
+        except Exception as e:
+
+            last_error = e
+
+            print(
+                f"PRIVATE CHAT RESOLVE ERROR: "
+                f"{type(e).__name__}: {e}"
+            )
+
+        # ---------------------------------
+        # TRY 3: REFRESH DIALOGS
+        # ---------------------------------
+
+        try:
+
+            print(
+                "Refreshing private dialogs..."
+            )
+
+            async for _ in u.get_dialogs(limit=200):
+                pass
+
+            result = await u.get_messages(
+                source_id,
+                d
+            )
+
+            if result and not getattr(result, "empty", False):
+
+                print(
+                    f"PRIVATE FETCH SUCCESS "
+                    f"AFTER DIALOG REFRESH: "
+                    f"chat={source_id}, message={d}"
+                )
+
+                return result
+
+        except Exception as e:
+
+            last_error = e
+
+            print(
+                f"PRIVATE DIALOG REFRESH ERROR: "
+                f"{type(e).__name__}: {e}"
+            )
+
+        # ---------------------------------
+        # FINAL ERROR
+        # ---------------------------------
+
+        if last_error:
+
+            print(
+                f"PRIVATE FETCH FAILED: "
+                f"chat={source_id}, "
+                f"message={d}, "
+                f"error={type(last_error).__name__}: "
+                f"{last_error}"
+            )
+
+        else:
+
+            print(
+                f"PRIVATE FETCH FAILED: "
+                f"chat={source_id}, "
+                f"message={d}. "
+                f"Message not found or empty."
+            )
+
+        return None
+
     except Exception as e:
-        print(f'Error fetching message: {e}')
+
+        print(
+            f"GET MESSAGE ERROR: "
+            f"{type(e).__name__}: {e}"
+        )
+
         return None
 
 
