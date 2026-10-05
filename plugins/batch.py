@@ -19,7 +19,6 @@ from typing import Dict, Any, Optional
 
 Y = None if not STRING else __import__('shared_client').userbot
 Z, P, UB, UC, emp = {}, {}, {}, {}, {}
-
 ACTIVE_USERS = {}
 ACTIVE_USERS_FILE = "active_users.json"
 
