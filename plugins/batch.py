@@ -701,22 +701,30 @@ async def text_handler(c, m):
                     )
 
                     if msg:
-                        res = await process_msg(
-                            ubot,
-                            uc,
-                            msg,
-                            str(m.chat.id),
-                            lt,
-                            uid,
-                            i
-                        )
+    print(
+        f"BATCH MESSAGE: message={mid}, "
+        f"media={getattr(msg, 'media', None)}, "
+        f"video={bool(getattr(msg, 'video', None))}"
+    )
 
-                        if any(x in res for x in [
-                            'Done',
-                            'Copied',
-                            'Sent'
-                        ]):
-                            success += 1
+    res = await process_msg(
+        ubot,
+        uc,
+        msg,
+        str(m.chat.id),
+        lt,
+        uid,
+        i
+    )
+
+    print(f"BATCH RESULT: message={mid}, result={res}")
+
+    if any(x in res for x in [
+        'Done',
+        'Copied',
+        'Sent'
+    ]):
+        success += 1
 
                 except Exception as e:
                     try:
