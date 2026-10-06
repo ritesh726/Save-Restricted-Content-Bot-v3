@@ -599,7 +599,7 @@ async def process_cmd(c, m):
     'pay', 'redeem', 'gencode', 'single', 'generate', 'keyinfo',
     'encrypt', 'decrypt', 'keys', 'setbot', 'rembot'
 ]))
-    async def text_handler(c, m):
+async def text_handler(c, m):
     uid = m.from_user.id
 
     if uid not in Z:
