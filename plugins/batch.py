@@ -591,15 +591,15 @@ async def process_cmd(c, m):
         await pro.edit('Add your bot with /setbot first')
         return
 
-Z[uid] = {'step': 'start' if cmd == 'batch' else 'start_single'}
-await pro.edit(f"Send me the link for {cmd} process...")
+    Z[uid] = {'step': 'start' if cmd == 'batch' else 'start_single'}
+    await pro.edit(f"Send me the link for {cmd} process...")
 
 @X.on_message(filters.text & filters.private & ~login_in_progress & ~filters.command([
     'start', 'batch', 'cancel', 'login', 'logout', 'stop', 'set',
     'pay', 'redeem', 'gencode', 'single', 'generate', 'keyinfo',
     'encrypt', 'decrypt', 'keys', 'setbot', 'rembot'
 ]))
-async def text_handler(c, m):
+    async def text_handler(c, m):
     uid = m.from_user.id
 
     if uid not in Z:
