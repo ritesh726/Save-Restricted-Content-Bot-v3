@@ -210,34 +210,56 @@ async def process_text_with_rules(user_id, text):
 
 async def screenshot(video: str, duration: int, sender: str) -> str | None:
     existing_screenshot = f"{sender}.jpg"
+
     if os.path.exists(existing_screenshot):
         return existing_screenshot
 
-    time_stamp = hhmmss(duration // 2)
-    output_file = datetime.now().isoformat("_", "seconds") + ".jpg"
+    output_file = f"{sender}_thumbnail.jpg"
 
-    cmd = [
-        "ffmpeg",
-        "-ss", time_stamp,
-        "-i", video,
-        "-frames:v", "1",
-        output_file,
-        "-y"
-    ]
+    def _make_thumbnail():
+        try:
+            cap = cv2.VideoCapture(video)
 
-    process = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+            if not cap.isOpened():
+                print(f"[THUMBNAIL] Cannot open video: {video}")
+                return None
+
+            middle_time = max(0, duration // 2)
+
+            cap.set(
+                cv2.CAP_PROP_POS_MSEC,
+                middle_time * 1000
+            )
+
+            success, frame = cap.read()
+            cap.release()
+
+            if not success or frame is None:
+                print("[THUMBNAIL] Could not read video frame")
+                return None
+
+            ok = cv2.imwrite(output_file, frame)
+
+            if ok and os.path.isfile(output_file):
+                print(f"[THUMBNAIL] Created: {output_file}")
+                return output_file
+
+            print("[THUMBNAIL] Failed to save thumbnail")
+            return None
+
+        except Exception as e:
+            print(
+                f"[THUMBNAIL ERROR] "
+                f"{type(e).__name__}: {e}"
+            )
+            return None
+
+    loop = asyncio.get_running_loop()
+
+    return await loop.run_in_executor(
+        None,
+        _make_thumbnail
     )
-    
-    stdout, stderr = await process.communicate()
-
-    if os.path.isfile(output_file):
-        return output_file
-    else:
-        print(f"FFmpeg Error: {stderr.decode().strip()}")
-        return None
 
 
 async def get_video_metadata(file_path):
