@@ -550,13 +550,26 @@ async def process_msg(c, u, m, d, lt, uid, i):
                     pass
 
             except Exception as e:
-                await c.edit_message_text(
-                    d, 
-                    p.id, 
-                    f'Upload failed: {str(e)[:100]}'
+                print(
+                    f"[UPLOAD ERROR] message={m.id}, "
+                    f"destination={tcid}, "
+                    f"file={f}, "
+                    f"error={type(e).__name__}: {e}"
                 )
-                if os.path.exists(f): os.remove(f)
-                return 'Failed.'
+
+                try:
+                    await c.edit_message_text(
+                        d,
+                        p.id,
+                        f'Upload failed: {str(e)[:150]}'
+                    )
+                except:
+                    pass
+
+                if os.path.exists(f):
+                    os.remove(f)
+
+                return f'Error: {type(e).__name__}: {str(e)[:100]}'
             
             os.remove(f)
             await c.delete_messages(d, p.id)
