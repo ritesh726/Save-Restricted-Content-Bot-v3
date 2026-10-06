@@ -695,7 +695,7 @@ async def text_handler(c, m):
 
                 mid = int(s_id) + j
 
-                                try:
+                try:
                     msg = await get_msg(
                         ubot, uc, i, mid, lt
                     )
@@ -726,7 +726,7 @@ async def text_handler(c, m):
                             'Copied',
                             'Sent'
                         ]):
-                            success += 1 
+                            success += 1
 
                 except Exception as e:
                     try:
