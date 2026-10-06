@@ -562,7 +562,7 @@ async def process_msg(c, u, m, d, lt, uid, i):
             await c.delete_messages(d, p.id)
             
             return 'Done.'
-            elif m.text:
+        else:
             await c.send_message(tcid, text=m.text.markdown, reply_to_message_id=rtmid)
             return 'Sent.'
             
