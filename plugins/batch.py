@@ -61,6 +61,26 @@ async def request_batch_cancel(user_id: int):
         return True
     return False
 
+@X.on_message(filters.command("stop") & filters.private)
+async def stop_batch(c, m):
+    uid = m.from_user.id
+
+    if not is_user_active(uid):
+        await m.reply_text("❌ No active batch is running.")
+        return
+
+    if await request_batch_cancel(uid):
+        info = get_batch_info(uid) or {}
+        current = info.get("current", 0)
+        total = info.get("total", 0)
+
+        await m.reply_text(
+            f"🛑 Batch stop requested.\n\n"
+            f"Progress: {current}/{total}\n"
+            f"The current item will finish, then the batch will stop."
+        )
+    else:
+        await m.reply_text("❌ No active batch is running.")
 def should_cancel(user_id: int) -> bool:
     user_str = str(user_id)
     return user_str in ACTIVE_USERS and ACTIVE_USERS[user_str].get("cancel_requested", False)
